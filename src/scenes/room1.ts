@@ -50,7 +50,7 @@ export function room1(k : KAPLAYCtx,roomData : roomData,previousSceneData = { ex
     player.respawnIfOutOfBounds(1000, "room1");
 
     for (const position of positions) {
-        if(position.name === "player") {
+        if(position.name === "player" && !previousSceneData.exitName) {
             player.setPosition(position.x,position.y)
             player.setControls();
             player.setEvents(),

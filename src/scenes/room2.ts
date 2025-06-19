@@ -34,7 +34,7 @@ export function room2(k : KAPLAYCtx, roomData : roomData, previousSceneData = {e
       position.name === "entrance-1" &&
       previousSceneData.exitName === "exit-1"
     ) {
-      player.setPosition(position.x + map.pos.x, position.y + map.pos.y);
+      player.setPosition(position.x, position.y);
       player.setControls();
       player.enablePassthrough();
       player.setEvents();
