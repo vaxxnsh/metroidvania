@@ -1,5 +1,5 @@
 import { GameObj, KAPLAYCtx } from "kaplay";
-import { state } from "../state/globalStateManager";
+import { state, statePropsEnum } from "../state/globalStateManager";
 
 type Collider =  {
     name : string
@@ -8,7 +8,7 @@ type Collider =  {
     width ?: number
     height ?: number
     type ?: string
-    poligon ?: {x : number,y : number}[]
+    polygon ?: {x : number,y : number}[]
     properties ?: {value : number}[]
 }
 
@@ -16,94 +16,126 @@ export function setBackgroundColor(k : KAPLAYCtx,color : string) {
     k.add([
         k.rect(k.width(),k.height()),
         k.color(color),
-        k.fixed()
+        k.fixed(),
+        k.z(-1)
     ])
 }
 
 export function setMapColliders(k : KAPLAYCtx,map : GameObj,colliders : Collider[]) {
     for (const collider of colliders) {
-        if (collider.poligon) {
-            const coordinates = []
-            for (const point of collider.poligon) {
-                coordinates.push(k.vec2(point.x,point.y))
-            }
+    if (collider.polygon) {
+      const coordinates = [];
+      for (const point of collider.polygon) {
+        coordinates.push(k.vec2(point.x, point.y));
+      }
 
-            map.add([
-                k.pos(collider.x,collider.y),
-                k.area({
-                    shape : new k.Polygon(coordinates),
-                    collisionIgnore : [
-                        "collider"
-                    ]
-                }),
-                "collider",
-                collider.type,
-            ])
-            continue;
+      map.add([
+        k.pos(collider.x, collider.y),
+        k.area({
+          shape: new k.Polygon(coordinates),
+          collisionIgnore: ["collider"],
+        }),
+        k.body({ isStatic: true }),
+        "collider",
+        collider.type,
+      ]);
+      continue;
+    }
+
+    if (collider.name === "boss-barrier") {
+      const bossBarrier = map.add([
+        k.rect(collider.width, collider.height),
+        k.color(k.Color.fromHex("#eacfba")),
+        k.pos(collider.x, collider.y),
+        k.area({
+          collisionIgnore: ["collider"],
+        }),
+        k.opacity(0),
+        "boss-barrier",
+        {
+          activate() {
+            k.tween(
+              this.opacity,
+              0.3,
+              1,
+              (val) => (this.opacity = val),
+              k.easings.linear
+            );
+
+            k.tween(
+              k.getCamPos().x,
+              collider.properties[0].value,
+              1,
+              (val) => k.setCamPos(val, k.getCamPos().y),
+              k.easings.linear
+            );
+          },
+          async deactivate(playerPosX) {
+            k.tween(
+              this.opacity,
+              0,
+              1,
+              (val) => (this.opacity = val),
+              k.easings.linear
+            );
+            await k.tween(
+              k.getCamPos().x,
+              playerPosX,
+              1,
+              (val) => k.setCamPos(val, k.getCamPos().y),
+              k.easings.linear
+            );
+            k.destroy(this);
+          },
+        },
+      ]);
+
+      bossBarrier.onCollide("player", async (player) => {
+        const currentState = state.current();
+        if (currentState.isBossDefeated) {
+          state.set(statePropsEnum.isPlayerInBossFight, false);
+          bossBarrier.deactivate(player.pos.x);
+          return;
         }
 
-        if (collider.name === "boss-barrier") {
-            const bossBarrier = map.add([
-                k.rect(collider.width, collider.height),
-                k.color(k.Color.fromHex("#eacfba")),
-                k.pos(collider.x, collider.y),
-                k.area({
-                collisionIgnore: ["collider"],
-                }),
-                k.opacity(0),
-                "boss-barrier",
-                {
-                    activate() {
-                        k.tween(
-                        this.opacity,
-                        0.3,
-                        1,
-                        (val) => (this.opacity = val),
-                        k.easings.linear
-                        );
+        if (currentState.isPlayerInBossFight) return;
+        player.disableControls();
+        player.play("idle");
+        await k.tween(
+          player.pos.x,
+          player.pos.x + 25,
+          0.2,
+          (val) => (player.pos.x = val),
+          k.easings.linear
+        );
+        player.setControls();
+      });
 
-                        k.tween(
-                        k.getCamPos().x,
-                        collider.properties[0].value,
-                        1,
-                        (val) => k.setCamPos(val, k.getCamPos().y),
-                        k.easings.linear
-                        );
-                    },
-                    async deactivate(playerPosX : number) {
-                        k.tween(
-                        this.opacity,
-                        0,
-                        1,
-                        (val) => (this.opacity = val),
-                        k.easings.linear
-                        );
-                        await k.tween(
-                        k.getCamPos().x,
-                        playerPosX,
-                        1,
-                        (val) => k.setCamPos(val, k.getCamPos().y),
-                        k.easings.linear
-                        );
-                        k.destroy(this);
-                    },
-                },
-            ]);
+      bossBarrier.onCollideEnd("player", () => {
+        const currentState = state.current();
+        if (currentState.isPlayerInBossFight || currentState.isBossDefeated)
+          return;
 
-            map.add([
-                k.pos(collider.x,collider.y),
-                k.area({
-                    shape : new k.Rect(k.vec2(0),collider.width,collider.height),
-                    collisionIgnore : ["collider"]
-                }),
-                k.body({
-                    isStatic : true
-                }),
-                "collider",
-                collider.type
-            ])
-        }   
+        state.set(statePropsEnum.isPlayerInBossFight, true);
+
+        bossBarrier.activate();
+        bossBarrier.use(k.body({ isStatic: true }));
+      });
+
+      continue;
     }
+
+    map.add([
+      k.pos(collider.x, collider.y),
+      k.area({
+        shape: new k.Rect(k.vec2(0), collider.width, collider.height),
+        collisionIgnore: ["collider"],
+      }),
+      k.body({ isStatic: true }),
+      "collider",
+      collider.type,
+    ]);
+  }
 }
 
 export function setCameraControls(k : KAPLAYCtx, player : GameObj,map : GameObj, roomData : any) {

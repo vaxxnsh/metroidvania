@@ -59,9 +59,4 @@ export function room1(k : KAPLAYCtx,roomData : roomData) {
             drone.setEvents();
         }
     }
-
-    k.add([
-        k.pos(0,0),
-        k.sprite("room1")
-    ])
 }

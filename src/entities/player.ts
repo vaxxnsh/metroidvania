@@ -6,6 +6,7 @@ export function makePlayer(k : KAPLAYCtx) {
     k.area({ shape: new k.Rect(k.vec2(0, 16), 16, 16) }),
     k.anchor("center"),
     k.opacity(1),
+    k.z(10),
     k.sprite("player"),
    
     k.body({ mass: 100,jumpForce : 320 }),
@@ -49,6 +50,24 @@ export function makePlayer(k : KAPLAYCtx) {
         this.onBeforePhysicsResolve((collision) => {
           if (collision.target.is("passthrough") && this.isJumping()) {
             collision.preventResolution();
+          }
+        });
+      },
+
+      disableControls() {
+        for (const handler of this.controlHandlers) {
+            handler.cancel();
+        }
+      },
+
+      respawnIfOutOfBounds(
+        boundValue : number,
+        destinationName : string,
+        previousSceneData = { exitName: null }
+      ) {
+        k.onUpdate(() => {
+          if (this.pos.y > boundValue) {
+            k.go(destinationName, previousSceneData);
           }
         });
       },
