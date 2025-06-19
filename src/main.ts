@@ -8,16 +8,15 @@ async function main() {
     const room1Data = await (await fetch('/maps/room1.json')).json();
     const room2Data = await (await fetch('/maps/room2.json')).json();
 
-    k.scene("room1",() => {
-        room1(k,room1Data);
+    k.scene("room1",(previousSceneData) => {
+        room1(k,room1Data,previousSceneData);
     })
 
-    k.scene("room2",() => {
-        room2();
+    k.scene("room2",(previousSceneData) => {
+        room2(k,room2Data,previousSceneData);
     })
 
     k.scene("intro", () => {
-    // Optional black background
     k.add([
         k.rect(k.width(), k.height()),
         k.color(0, 0, 0),
@@ -25,10 +24,9 @@ async function main() {
         k.z(-1),
     ]);
 
-    // Add player entity (from makePlayer)
     const player = k.add(makePlayer(k));
     player.setPosition(k.width() / 2, k.height() / 2);
-    player.setControls(); // allow control even in intro
+    player.setControls();
     player.setEvents();
     player.enablePassthrough();
 

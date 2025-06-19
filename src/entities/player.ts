@@ -1,4 +1,4 @@
-import { KAPLAYCtx } from "kaplay";
+import { Collision, KAPLAYCtx } from "kaplay";
 import { state, statePropsEnum } from "../state/globalStateManager";
 import { makeBlink } from "./sharedLogic";
 import { healthBar } from "../ui/healthBar";
@@ -76,7 +76,7 @@ export function makePlayer(k : KAPLAYCtx) {
         });
       },
       enablePassthrough() {
-        this.onBeforePhysicsResolve((collision) => {
+        this.onBeforePhysicsResolve((collision : Collision) => {
           if (collision.target.is("passthrough") && this.isJumping()) {
             collision.preventResolution();
           }
@@ -99,12 +99,9 @@ export function makePlayer(k : KAPLAYCtx) {
         });
       },
       setEvents() {
-        // when player falls after jumping
         this.onFall(() => {
           this.play("fall");
         });
-
-        // when player falls off a platform
         this.onFallOff(() => {
           this.play("fall");
         });
