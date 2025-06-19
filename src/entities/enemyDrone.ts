@@ -1,6 +1,6 @@
-import { KAPLAYCtx } from "kaplay";
+import { KAPLAYCtx, Vec2 } from "kaplay";
 
-export function makeDrone(k : KAPLAYCtx, initialPos : number) {
+export function makeDrone(k : KAPLAYCtx, initialPos : Vec2) {
   return k.make([
     k.pos(initialPos),
     k.sprite("drone", { anim: "flying" }),

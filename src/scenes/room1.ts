@@ -1,6 +1,7 @@
 import { KAPLAYCtx } from "kaplay";
 import { setBackgroundColor, setCameraControls, setCameraZones, setMapColliders } from "./roomUtils";
 import { makePlayer } from "../entities/player";
+import { makeDrone } from "../entities/enemyDrone";
 
 type roomData = {
     layers : {
@@ -50,6 +51,12 @@ export function room1(k : KAPLAYCtx,roomData : roomData) {
             player.setEvents(),
             player.enablePassthrough()
             continue;
+        }
+
+        if (position.type === "drone") {
+            const drone = map.add(makeDrone(k, k.vec2(position.x, position.y)));
+            drone.setBehavior();
+            drone.setEvents();
         }
     }
 

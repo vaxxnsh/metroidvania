@@ -43,25 +43,67 @@ export function setMapColliders(k : KAPLAYCtx,map : GameObj,colliders : Collider
         }
 
         if (collider.name === "boss-barrier") {
-            //TODO: Later
-            const bossBarrier = k.add([
+            const bossBarrier = map.add([
+                k.rect(collider.width, collider.height),
+                k.color(k.Color.fromHex("#eacfba")),
+                k.pos(collider.x, collider.y),
+                k.area({
+                collisionIgnore: ["collider"],
+                }),
+                k.opacity(0),
+                "boss-barrier",
+                {
+                    activate() {
+                        k.tween(
+                        this.opacity,
+                        0.3,
+                        1,
+                        (val) => (this.opacity = val),
+                        k.easings.linear
+                        );
 
+                        k.tween(
+                        k.getCamPos().x,
+                        collider.properties[0].value,
+                        1,
+                        (val) => k.setCamPos(val, k.getCamPos().y),
+                        k.easings.linear
+                        );
+                    },
+                    async deactivate(playerPosX : number) {
+                        k.tween(
+                        this.opacity,
+                        0,
+                        1,
+                        (val) => (this.opacity = val),
+                        k.easings.linear
+                        );
+                        await k.tween(
+                        k.getCamPos().x,
+                        playerPosX,
+                        1,
+                        (val) => k.setCamPos(val, k.getCamPos().y),
+                        k.easings.linear
+                        );
+                        k.destroy(this);
+                    },
+                },
+            ]);
+
+            map.add([
+                k.pos(collider.x,collider.y),
+                k.area({
+                    shape : new k.Rect(k.vec2(0),collider.width,collider.height),
+                    collisionIgnore : ["collider"]
+                }),
+                k.body({
+                    isStatic : true
+                }),
+                "collider",
+                collider.type
             ])
-        }
-
-        map.add([
-            k.pos(collider.x,collider.y),
-            k.area({
-                shape : new k.Rect(k.vec2(0),collider.width,collider.height),
-                collisionIgnore : ["collider"]
-            }),
-            k.body({
-                isStatic : true
-            }),
-            "collider",
-            collider.type
-        ])
-    }   
+        }   
+    }
 }
 
 export function setCameraControls(k : KAPLAYCtx, player : GameObj,map : GameObj, roomData : any) {
