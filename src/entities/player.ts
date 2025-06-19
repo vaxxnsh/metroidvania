@@ -1,4 +1,7 @@
 import { KAPLAYCtx } from "kaplay";
+import { state, statePropsEnum } from "../state/globalStateManager";
+import { makeBlink } from "./sharedLogic";
+import { healthBar } from "../ui/healthBar";
 
 export function makePlayer(k : KAPLAYCtx) {
   return k.make([
@@ -7,8 +10,9 @@ export function makePlayer(k : KAPLAYCtx) {
     k.anchor("center"),
     k.opacity(1),
     k.z(10),
+    k.health(3,3),
     k.sprite("player"),
-   
+    k.doubleJump(state.current().doubleJumpEnabled ? 2 : 1),
     k.body({ mass: 100,jumpForce : 320 }),
     {
       speed: 150,
@@ -18,10 +22,35 @@ export function makePlayer(k : KAPLAYCtx) {
       },
       setControls() {
         k.onKeyPress((key) => {
-          if (key === "z" && this.isGrounded()) {
+          if (key === "z") {
             if (this.curAnim() !== "jump") this.play("jump");
-            this.jump();
+            this.doubleJump();
           }
+
+          if (
+              key === "x" &&
+              this.curAnim() !== "attack" &&
+              this.isGrounded()
+            ) {
+              this.isAttacking = true;
+              this.add([
+                k.pos(this.flipX ? -25 : 0, 10),
+                k.area({ shape: new k.Rect(k.vec2(0), 25, 10) }),
+                "sword-hitbox",
+              ]);
+              this.play("attack");
+
+              this.onAnimEnd((anim : string) => {
+                if (anim === "attack") {
+                  const swordHitbox = k.get("sword-hitbox", {
+                    recursive: true,
+                  })[0];
+                  if (swordHitbox) k.destroy(swordHitbox);
+                  this.isAttacking = false;
+                  this.play("idle");
+                }
+              });
+            }
         });
 
         k.onKeyDown((key) => {
@@ -53,13 +82,11 @@ export function makePlayer(k : KAPLAYCtx) {
           }
         });
       },
-
       disableControls() {
         for (const handler of this.controlHandlers) {
             handler.cancel();
         }
       },
-
       respawnIfOutOfBounds(
         boundValue : number,
         destinationName : string,
@@ -71,20 +98,50 @@ export function makePlayer(k : KAPLAYCtx) {
           }
         });
       },
-
       setEvents() {
+        // when player falls after jumping
+        this.onFall(() => {
+          this.play("fall");
+        });
+
+        // when player falls off a platform
         this.onFallOff(() => {
-            this.play("fall");
-        })
-
+          this.play("fall");
+        });
         this.onGround(() => {
-            this.play("idle")
-        })
-
+          this.play("idle");
+        });
         this.onHeadbutt(() => {
-            this.play("fall");
-        })
-      }
+          this.play("fall");
+        });
+
+        this.on("heal", () => {
+          state.set(statePropsEnum.playerHp, this.hp());
+          healthBar.trigger("update");
+        });
+
+        this.on("hurt", () => {
+          makeBlink(k, this);
+          if (this.hp() > 0) {
+            state.set(statePropsEnum.playerHp, this.hp());
+            healthBar.trigger("update");
+            return;
+          }
+
+          state.set(statePropsEnum.playerHp, state.current().maxPlayerHp);
+          k.play("boom");
+          this.play("explode");
+        });
+
+        this.onAnimEnd((anim : string) => {
+          if (anim === "explode") {
+            k.go("room1");
+          }
+        });
+      },
+      enableDoubleJump() {
+        this.numJumps = 2;
+      },
     },
     "player"
   ]);

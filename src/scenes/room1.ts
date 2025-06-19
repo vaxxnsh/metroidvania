@@ -2,6 +2,10 @@ import { KAPLAYCtx } from "kaplay";
 import { setBackgroundColor, setCameraControls, setCameraZones, setMapColliders } from "./roomUtils";
 import { makePlayer } from "../entities/player";
 import { makeDrone } from "../entities/enemyDrone";
+import { makeBoss } from "../entities/bossEnemy";
+import { state } from "../state/globalStateManager";
+import { makeCartridge } from "../entities/healthCartridge";
+import { healthBar } from "../ui/healthBar";
 
 type roomData = {
     layers : {
@@ -58,5 +62,19 @@ export function room1(k : KAPLAYCtx,roomData : roomData) {
             drone.setBehavior();
             drone.setEvents();
         }
+
+        if (position.name === "boss" && !state.current().isBossDefeated) {
+            const boss = map.add(makeBoss(k, k.vec2(position.x, position.y)));
+            boss.setBehavior();
+            boss.setEvents();
+        }
+
+        if (position.type === "cartridge") {
+            map.add(makeCartridge(k, k.vec2(position.x, position.y)));
+        }
     }
+
+    healthBar.setEvents();
+    healthBar.trigger("update");
+    k.add(healthBar);
 }
